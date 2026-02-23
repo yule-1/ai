@@ -204,7 +204,36 @@ class NotionClient:
 
         def pretty(name: str) -> str:
             stem = Path(name).stem
-            return stem.replace("_", " ")
+            label = stem
+            # common KR labels
+            replaces = {
+                "samsung": "삼성전자",
+                "skhynix": "SK하이닉스",
+                "yearly": "연도별",
+                "yearend": "연말",
+                "with": "포함",
+                "and": "및",
+                "per": "PER",
+                "pbr": "PBR",
+                "mcap": "시가총액",
+                "historical": "과거",
+                "actual": "실제치",
+                "adjusted": "수정",
+                "close": "종가",
+                "full": "전체",
+                "timeseries": "시계열",
+                "yfinance": "yfinance",
+                "interactive": "인터랙티브",
+                "scenarios": "시나리오",
+                "estimate": "추정",
+                "estimates": "추정치",
+                "provisional": "잠정치",
+                "yesterday": "어제 기준",
+                "price": "주가",
+            }
+            for en, ko in replaces.items():
+                label = label.replace(en, ko)
+            return label.replace("_", " ")
 
         blocks = [
             {"object": "block", "type": "paragraph", "paragraph": {"rich_text": [{"type": "text", "text": {"content": "Interactive + Charts + Data links"}}]}},
