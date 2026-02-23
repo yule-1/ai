@@ -192,7 +192,7 @@ class NotionClient:
             created += 1
         return created
 
-    def create_embed_page(self, title: str, urls: List[str]) -> str:
+    def create_embed_page(self, title: str, rows: List[Tuple[str, str, str]]) -> str:
         page = self._post(
             "/pages",
             {
@@ -201,8 +201,36 @@ class NotionClient:
             },
         )
         pid = page["id"]
-        blocks = [{"object": "block", "type": "paragraph", "paragraph": {"rich_text": [{"type": "text", "text": {"content": "Interactive charts"}}]}}]
-        blocks += [{"object": "block", "type": "bookmark", "bookmark": {"url": u}} for u in urls]
+
+        def pretty(name: str) -> str:
+            stem = Path(name).stem
+            return stem.replace("_", " ")
+
+        blocks = [
+            {"object": "block", "type": "paragraph", "paragraph": {"rich_text": [{"type": "text", "text": {"content": "Interactive + Charts + Data links"}}]}},
+        ]
+
+        sections = [
+            ("interactive", "Interactive Charts"),
+            ("chart", "Chart Images (PNG)"),
+            ("data", "Data (CSV)"),
+        ]
+
+        for typ, heading in sections:
+            items = [(n, u) for t, n, u in rows if t == typ]
+            if not items:
+                continue
+            blocks.append({"object": "block", "type": "heading_2", "heading_2": {"rich_text": [{"type": "text", "text": {"content": heading}}]}})
+            for name, url in items:
+                blocks.append({
+                    "object": "block",
+                    "type": "bulleted_list_item",
+                    "bulleted_list_item": {
+                        "rich_text": [{"type": "text", "text": {"content": pretty(name), "link": {"url": url}}}]
+                    },
+                })
+                blocks.append({"object": "block", "type": "bookmark", "bookmark": {"url": url}})
+
         for i in range(0, len(blocks), 90):
             self._patch(f"/blocks/{pid}/children", {"children": blocks[i : i + 90]})
         return page.get("url", "")
@@ -269,7 +297,7 @@ def main() -> None:
             rows.append(("chart", f.name, f"https://raw.githubusercontent.com/yule-1/ai/main/{args.date}/charts/{f.name}"))
 
         created_rows = nc.add_index_rows(db_id, date_iso, rows)
-        embed_url = nc.create_embed_page(f"{date_iso} Interactive Charts", [u for t, _, u in rows if t == "interactive"])
+        embed_url = nc.create_embed_page(f"{date_iso} Interactive + Charts + Data", rows)
         notion_result = f"db_id={db_id}, created_rows={created_rows}, embed_page={embed_url}"
 
     print(f"date={args.date}")
